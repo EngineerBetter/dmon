@@ -28,7 +28,7 @@ func (e event) String() string {
 	if e.status == false {
 		status = "down"
 	}
-	return fmt.Sprintf("Endpoint is %v. Status code: %v. Time %v", status, e.statusCode, e.ts.Format(time.RFC822))
+	return fmt.Sprintf("Endpoint is %v. Status code: %v. Time %v", status, e.statusCode, e.ts.Format(time.StampMilli))
 }
 
 func dmon(ctx context.Context, req *http.Request, interval time.Duration) chan event {
@@ -78,12 +78,15 @@ func main() {
 	events := dmon(context.Background(), req, *interval)
 
 	event := <-events
+	lastEvent := event
 	fmt.Println(event)
-	lastStatus := event.status
 	for event := range events {
-		if event.status != lastStatus {
+		if event.status != lastEvent.status {
+			if event.status == true {
+				fmt.Printf("Experienced %v downtime\n", event.ts.Sub(lastEvent.ts))
+			}
 			fmt.Println(event)
+			lastEvent = event
 		}
-		lastStatus = event.status
 	}
 }
